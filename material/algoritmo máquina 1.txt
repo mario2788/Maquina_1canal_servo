@@ -1,0 +1,33 @@
+Algoritmo ejecución máquina clasificadora de huevos Exergy
+Nomenclatura de motores:
+	Motor mecanismo admisión huevo a huevo-> motor peaje
+	Motor mecanismo de rotación vertical->motor clasificador
+	Motor mecanismo de expulsión de huevo->micromotor
+
+1. 
+Encendemos la máquina
+2. 
+Motor peaje en posición de palas arriba
+Motor clasificador en posición a 90 grados (para indicar que no está lista para trabajar)
+Micromotor en posición neutra
+Encendemos por 200 ms todos los botones y se apagan
+3.
+El led del botón azul de calibración queda parpadeando indicando que se debe oprimir para proceder a la calibración semiautomática
+4.
+Al oprimirse el botón azul.
+La celda que tiene un valor de calibración inicial, deberá detectar que el patrón de calibración fue puesto en la balanza. Por ejemplo, si el valor del patrón es 60 gramos, el algoritmo debe detectar que el peso medido esté entre 59 y 61 gramos, y que esta medida se repita varias veces (yo tengo 3) para asegurar que el patrón está estable en la balanza y la medida sea precisa.
+Con la medida correcta se hace la calibración (ver mi código: usamos librería <HX711_ADC.h> a 10SPS (samples per second) y una muestra por dato) y el valor de calibración de la celda se actualiza de ahí en adelante
+5.
+Una vez la celda ha sido calibrada deberá enviar este valor al módulo wifi (me gustaría saber cómo varía este valor en el tiempo) pero que solo sea visto por mí como administrador
+Los leds de los botones rojo y verde se encienden
+6.
+Al oprimir el botón verde, iniciamos el ciclo de trabajo:
+El peaje o las palas blancas bajan -con una curva que está en el código de peaje.ino)-, mientras ellas bajan la celda hace el tare, una vez las palas están abajo se hace el pesaje, al acabar el pesaje el peaje o las palas suben para trasladar el huevo de la balanza al mecanismo clasificador y se repite el ciclo. Acá es importante (en el ciclo de subida) dejar un tiempo considerable (unos 500ms) antes de hacer el tare en la celda para que las palas expulsen completamente el huevo de la balanza al mecanismo clasificador. Tuve problemas antes al querer hacer el tare muy pronto pues el huevo no había salido completamente de la balanza y alteraba el tare.
+7
+De acuerdo al peso medido se sabe la categoría del huevo y se envía señal al clasificador y microservo (y al módulo wifi para registrar el conteo) para alojarlo en la bandeja correspondiente. Es importante también acá darle una espera de unos 500ms para que huevo alcance a estabilizarse en el mecanismo clasficador antes de empezar a rotar, de lo contrario tenemos problemas 
+7.
+En cualquier momento si se oprime el botón rojo:
+7.1. las palas detienen su movimiento y suben lentamente hasta su posición arriba y se quedan allí.
+7.2. el mecanismo clasificador expulsa el huevo en la bandeja de al frente, para que el eventual huevo pase y se estabilice en el mecanismo clasificaor (esto se hace para que en caso de que al oprimir el botón rojo hubiese un huevo en la balanza, al subir las palas y por ende pasar dicho huevo al mecanismo clasificador, este no se quede allí sino que pase a la bandeja. Si este eventual huevo se llegase a quedar ahí, podría generar un trancón cuando el operario oprima el botón verde de nuevo sin percatarse de que hay un huevo allí)
+0. El módulo wifi deberá conectarse a la red wifi para poder monitorear la máquina desde remoto.
+Igualmente, será provechoso dejar puntos en el código que se puedan activar y monitorear desde el módulo wifi para tratar de diagnosticar la máquina desde remoto.
