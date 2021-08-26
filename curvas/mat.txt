@@ -1,0 +1,54 @@
+Ecuaciones parametricas de la funcion cicloidal:
+    x = r( t - sen(t) )
+    y = r( 1 - cos(t) )
+
+Derivadas de la funcion cicloidal:
+    dy/dt = r(sen(t)) 
+    dx/dt = r(1-cos(t))
+
+Calculo de la pendiente  a -45° 
+    dy/dx = sen(t)/(1-cos(t))
+    dy/dx = -1
+
+    sen(t)/(1-cos(t)) = dy/dx = -1
+    f(t) = sen(t)/(1-cos(t)) + 1
+
+Empleo del vector obtenido para un movimiento con trayectoria cicloidal
+
+    ang_delta =  ang_inicial - ang_final = 40 - 140 = -100
+
+    ang_servo = ang_final + ang_delta*Fun_c[ index ]
+                    140     -    100*1 = 40 
+                    140     -    100*0.5 = 90
+                    140     -    100*0 = 140
+
+    ang_delta =  ang_inicial - ang_final = 140 - 40 = 100
+
+    ang_servo = ang_final + ang_delta*Fun_c[ index ]
+                    40     +    100*1 = 140 
+                    40     +    100*0.5 = 90
+                    40     +    100*0 = 40                
+
+Conversión de fracciones de grados a microsegundos
+    servo.write(int) : Define la posición con enteros de 0 a 180, que corresponden a la
+                    posicion del eje en grados.
+    servo.writeMicrosegundos(int): Define la posicion del eje manipulando en ancho del
+                    pulso con definicion en microsegundos. Escribe enteros desde 1000
+                    a 2000. Estos limites pueden varias según el fabricante del motor.
+
+    Definicion de las posiciones limites en microsegundos:
+    mic_izq = 1000
+    mic_der = 2000
+
+    Posicion arbitaria en grados: ang = 45.843°:
+    ang_int = 45
+
+    m = (2000 - 1000)/(180 - 0) = 5.55
+    y = 5.55(x - 180) + 2000
+
+    y(45.843) = 5.55(45.843 - 180) + 2000
+    y(45.843) = 1255
+
+    y(90) = 5.55(90 - 180) + 2000
+    y(90) = 1500.5
+
