@@ -55,4 +55,12 @@
          }
       }
       Serial.println( "Configuracion terminada." );
+      digitalWrite( LED_ROJO, stateLed ) ;
+      digitalWrite( LED_VERDE, stateLed ) ;
+   }
+
+   void test_celda(){
+      float value = bascula.get_units(3); // Tres lecturas
+      Serial.print( "Peso:" ) ;
+      Serial.println( value ) ;
    }

@@ -22,50 +22,25 @@
 // dar privilegios al conversor Serial
 // sudo chmod ugo+x+r+w /dev/ttyUSB0
 #include <Arduino.h>
-#include <Servo.h>
 #include <TimerOne.h>
 
 //Funciones externas
 #include "leds_btns.cpp"
 #include "celda.cpp"
+#include "servos.cpp"
 
-// Ciclos para el motor de peaje:
-// Parametros: 
-const int CICLO_PEAJE_1 [] = {1222, 1224, 1229, 1239, 1251, 1268, 1287, 1309, 1333, 1359, 1386, 1415, 1444, 1444, 1473, 1501, 1529, 1555, 1579, 1601, 1620, 1636, 1649, 1659, 1664, 1666} ;
-const int CICLO_PEAJE_2 [] = {1222, 1224, 1229, 1239, 1251, 1268, 1287, 1309, 1333, 1359, 1386, 1415, 1444, 1444, 1473, 1501, 1529, 1555, 1579, 1601, 1620, 1636, 1649, 1659, 1664, 1666} ;
-const int CICLO_PEAJE_3 [] = {1222, 1224, 1229, 1239, 1251, 1268, 1287, 1309, 1333, 1359, 1386, 1415, 1444, 1444, 1473, 1501, 1529, 1555, 1579, 1601, 1620, 1636, 1649, 1659, 1664, 1666} ;
-// Ciclos para el motor de CLASIFI:
-const int CICLO_CLASIFI_1 [] = {1222, 1224, 1229, 1239, 1251, 1268, 1287, 1309, 1333, 1359, 1386, 1415, 1444, 1444, 1473, 1501, 1529, 1555, 1579, 1601, 1620, 1636, 1649, 1659, 1664, 1666} ;
-const int CICLO_CLASIFI_2 [] = {1222, 1224, 1229, 1239, 1251, 1268, 1287, 1309, 1333, 1359, 1386, 1415, 1444, 1444, 1473, 1501, 1529, 1555, 1579, 1601, 1620, 1636, 1649, 1659, 1664, 1666} ;
-const int CICLO_CLASIFI_3 [] = {1222, 1224, 1229, 1239, 1251, 1268, 1287, 1309, 1333, 1359, 1386, 1415, 1444, 1444, 1473, 1501, 1529, 1555, 1579, 1601, 1620, 1636, 1649, 1659, 1664, 1666} ;
+// Categoria de huevos:
+const unsigned char a = 24 ;
+const unsigned char aa = 35 ;
+const unsigned char b = 40 ;
+const unsigned char bb = 50 ;
+// tolerancia: +-
+const unsigned char tol = 5;
 
-// Servos:
-Servo SERVO_PEAJE ;
-Servo SERVO_CLASIFI ;
-Servo SERVO_EXPUL ;
-
-
-void ISR_servo(){   
-
-}
-
-// Posiciones de los motores:
-// Al prender:
-const int POS_PEAJE_ON = 90 ;
-const int POS_CLASIFI_ON = 120 ;
-const int POS_EXPUL_ON = 140 ;
-// Tras el oprimir el boton verde
-const int POS_PEAJE_LED_VERDE = 90 ;
-const int POS_CLASIFI_LED_VERDE = 120 ;
-const int POS_EXPUL_LED_VERDE = 140 ;
-
-// Ciclos:
-char CICLOS_PEAJE []    = { '1', '2', '3' } ;
-char CICLOS_CLASIFI []  = { '1', '2', '3' } ;
-char CICLOS_PEAJE []    = { '1', '2', '3' } ;
+void ISR_servo() ;
+unsigned char categoria(float value);
 
 void setup() {
-   // put your setup code here, to run once:
 
    // leds:
    pinMode( LED_AZUL,   OUTPUT );
@@ -106,49 +81,175 @@ void setup() {
    digitalWrite( BTN_ROJO, HIGH ) ;
 
    // calibracion de la celda
+   // motor clasificador a 90°:
+   SERVO_CLASIFI.write(90);
    calibrarCelda() ;
 
    // interrupcion por timer1
-   Timer1.initialize(250000);         // Dispara cada 250 ms
+   Timer1.initialize( 5000 );         // Dispara cada 5 ms
    Timer1.attachInterrupt( ISR_servo ); // Activa la interrupcion y la asocia a ISR_Blink
 
 }
 
-// posicion de los servos en el test
-int pos = 0;
+
+
 void loop() {
    // put your main code here, to run repeatedly:
 
-   // Test botones y leds:
-   test_leds_btns() ;
+   // test_leds_btns() ;
+   // test_servo();
+   // test_celda()
 
-   // test servo motores
-   if( Serial.available() > 0 ){
-      // read the incoming byte:
-      char received = Serial.read();
-      Serial.print( received );
+   float value_celda = 0 ;
+   unsigned char cat = 0 ;
 
-      if( received == 'u' && pos+5 <= 180){
-         pos = pos + 5 ;
-         SERVO_PEAJE.write(pos);
-         SERVO_CLASIFI.write(pos);
-         SERVO_EXPUL.write(pos);
-         Serial.println(pos, DEC);
-      }
+   // Espera hasta que se oprima el boton verde
+   while( readBtn( BTN_VERDE, LOW ) ){}
 
-      if( received == 'd' && pos-5 >= 0){
-         pos = pos - 5 ;
-         SERVO_PEAJE.write(pos);
-         SERVO_CLASIFI.write(pos);
-         SERVO_EXPUL.write(pos);
-         Serial.println(pos, DEC );
-      }
-      received = ' ';
-      Serial.flush();
+   //Inicio de la rutina de trabajo:
+
+   // carga huevo a la celda:
+   CICLOS_PEAJE = 1 ; //Se da comienzo al movimiento.
+   while( CICLOS_PEAJE != 0){} // espera a terminar el movimiento
+
+   delay(500); // Espera para estabilizacion del huevo.
+   value_celda = bascula.get_units(3); // Tres lecturas
+   cat = categoria( value_celda ); // definicion de categoria
+
+   // carga huevo al clasificador
+   CICLOS_PEAJE = 2 ; //Se da comienzo al movimiento.
+   while( CICLOS_PEAJE != 0){}
+   
+
+
+}
+
+unsigned char categoria(float value){
+
+   unsigned char return_value = 0 ;
+   
+   if( value >= a + tol || value >= a - tol ){
+      return return_value = 1 ;
    }
 
-   // Test celda de carga HX711.h
-   float value = bascula.get_units(3); // Tres lecturas
-   Serial.print( "Peso:" ) ;
-   Serial.println( value ) ;
+   if( value >= aa + tol || value >= aa - tol ){
+      return return_value = 2 ;
+   }     
+
+   if( value >= b + tol || value >= b - tol ){
+      return return_value = 3 ;
+   }     
+
+   if( value >= bb + tol || value >= b - tol ){
+      return return_value = 4 ;
+   }    
+   
+   return 0 ;
+}
+
+void ISR_servo(){   
+   // administracion de ciclos del motor clasificador
+   if( CICLOS_CLASIFI !=0 ){
+      switch ( CICLOS_CLASIFI ){
+      case 1:
+         if( INDEX_CLASIFI <  sizeof(CICLO_CLASIFI_1)-1 ){
+            INDEX_CLASIFI = INDEX_CLASIFI + 1 ;
+            SERVO_CLASIFI.writeMicroseconds( CICLO_CLASIFI_1[INDEX_CLASIFI] ) ;
+         }else{
+            CICLOS_CLASIFI = 0 ;
+            INDEX_CLASIFI = 0;
+         }
+         break;
+      case 2:
+         if( INDEX_CLASIFI <  sizeof(CICLO_CLASIFI_2)-1 ){
+            INDEX_CLASIFI = INDEX_CLASIFI + 1 ;
+            SERVO_CLASIFI.writeMicroseconds( CICLO_CLASIFI_2[INDEX_CLASIFI] ) ;
+         }else{
+            CICLOS_CLASIFI = 0 ;
+            INDEX_CLASIFI = 0;
+         }
+         break; 
+      case 3:
+         if( INDEX_CLASIFI <  sizeof(CICLO_CLASIFI_3)-1 ){
+            INDEX_CLASIFI = INDEX_CLASIFI + 1 ;
+            SERVO_CLASIFI.writeMicroseconds( CICLO_CLASIFI_3[INDEX_CLASIFI] ) ;
+         }else{
+            CICLOS_CLASIFI = 0 ;
+            INDEX_CLASIFI = 0;
+         }         
+         break;      
+      default:
+         break;
+      }
+   }
+
+   // administracion de ciclos del motor de expulsion
+   if( CICLOS_EXPUL !=0 ){
+      switch ( CICLOS_EXPUL ){
+      case 1:
+         if( INDEX_EXPUL <  sizeof(CICLO_EXPUL_1)-1 ){
+            INDEX_EXPUL = INDEX_EXPUL + 1 ;
+            SERVO_EXPUL.writeMicroseconds( CICLO_EXPUL_1[INDEX_EXPUL] ) ;
+         }else{
+            CICLOS_EXPUL = 0 ;
+            INDEX_EXPUL = 0;
+         }
+         break;
+      case 2:
+         if( CICLOS_EXPUL <  sizeof(CICLO_EXPUL_2)-1 ){
+            CICLOS_EXPUL = CICLOS_EXPUL + 1 ;
+            SERVO_EXPUL.writeMicroseconds( CICLO_EXPUL_2[INDEX_EXPUL] ) ;
+         }else{
+            CICLOS_EXPUL = 0 ;
+            INDEX_EXPUL = 0;
+         }
+         break; 
+      case 3:
+         if( CICLOS_EXPUL <  sizeof(CICLO_EXPUL_3)-1 ){
+            CICLOS_EXPUL = CICLOS_EXPUL + 1 ;
+            SERVO_EXPUL.writeMicroseconds( CICLO_EXPUL_3[INDEX_EXPUL] ) ;
+         }else{
+            CICLOS_EXPUL = 0 ;
+            INDEX_EXPUL = 0;
+         }         
+         break;      
+      default:
+         break;
+      }
+   }
+
+  // administracion de ciclos del motor peaje
+   if( CICLOS_PEAJE !=0 ){
+      switch ( CICLOS_PEAJE ){
+      case 1:
+         if( INDEX_PEAJE <  sizeof(CICLO_PEAJE_1)-1 ){
+            INDEX_PEAJE = INDEX_PEAJE + 1 ;
+            SERVO_PEAJE.writeMicroseconds( CICLO_PEAJE_1[INDEX_PEAJE] ) ;
+         }else{
+            CICLOS_PEAJE = 0 ;
+            INDEX_PEAJE = 0;
+         }
+         break;
+      case 2:
+         if( CICLOS_PEAJE <  sizeof(CICLO_PEAJE_2)-1 ){
+            CICLOS_PEAJE = CICLOS_PEAJE + 1 ;
+            SERVO_PEAJE.writeMicroseconds( CICLO_PEAJE_2[INDEX_PEAJE] ) ;
+         }else{
+            CICLOS_PEAJE = 0 ;
+            INDEX_PEAJE = 0;
+         }
+         break; 
+      case 3:
+         if( CICLOS_PEAJE <  sizeof(CICLO_PEAJE_3)-1 ){
+            CICLOS_PEAJE = CICLOS_PEAJE + 1 ;
+            SERVO_PEAJE.writeMicroseconds( CICLO_PEAJE_3[INDEX_PEAJE] ) ;
+         }else{
+            CICLOS_PEAJE = 0 ;
+            INDEX_PEAJE = 0;
+         }         
+         break;      
+      default:
+         break;
+      }
+   }   
 }

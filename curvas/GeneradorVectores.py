@@ -66,12 +66,13 @@ y2 = temp
 
 # construccion de un unico vector:
 y3 = np.concatenate( [y1,y2] )
-# Obtencion del vector:
+# Obtencion del delta:
 ang_delta = ang_inicial - ang_final
 # conversion de grados a microsegundo:
 m = (mic_der - mic_izq)/(ang_der - ang_izq)
 t_ms = lambda ang: m*(ang - ang_der) + mic_der
 
+# construccion del vector:
 vector_text = "{"
 for y in y3:
     # imprimir ',' si no es el ultimo elemento

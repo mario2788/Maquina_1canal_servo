@@ -32,6 +32,7 @@ Empleo del vector obtenido para un movimiento con trayectoria cicloidal
 Conversión de fracciones de grados a microsegundos
     servo.write(int) : Define la posición con enteros de 0 a 180, que corresponden a la
                     posicion del eje en grados.
+                    
     servo.writeMicrosegundos(int): Define la posicion del eje manipulando en ancho del
                     pulso con definicion en microsegundos. Escribe enteros desde 1000
                     a 2000. Estos limites pueden varias según el fabricante del motor.
