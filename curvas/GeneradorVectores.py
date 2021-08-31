@@ -12,12 +12,12 @@ import scipy.optimize as op
 #***********    Configuracion de parametros    **********************
 # *******************************************************************
 # Angulos del movimiento:
-ang_inicial = 40
-ang_final   = 120 
+ang_inicial = 10
+ang_final   = 90
 # Delta de tiempo para una interrupcion ms:
-time_intr = 15
+time_intr = 50
 # Tiempo del ciclo en ms:
-time_ciclo = 200 
+time_ciclo = 2000 
 # limites de posicion del servo en microsegundos y grados:   
 mic_izq = 1000
 mic_der = 2000

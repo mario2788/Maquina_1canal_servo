@@ -46,17 +46,18 @@
       Serial.println( value );
       bascula.set_scale( value ) ;
 
-      while( true ){
-         value = bascula.get_units(10); // Promedio de 10 lecturas
-         Serial.print("Lectura:");
-         Serial.println( value );
-         if( value >= (masa_patron - 2 ) && value <= (masa_patron + 2 )){
-            break ;
-         }
-      }
+      // while( true ){
+      //    value = bascula.get_units(10); // Promedio de 10 lecturas
+      //    Serial.print("Lectura:");
+      //    Serial.println( value );
+      //    if( value >= (masa_patron - 2 ) && value <= (masa_patron + 2 )){
+      //       break ;
+      //    }
+      // }
       Serial.println( "Configuracion terminada." );
-      digitalWrite( LED_ROJO, stateLed ) ;
-      digitalWrite( LED_VERDE, stateLed ) ;
+      digitalWrite( LED_ROJO, HIGH ) ;
+      digitalWrite( LED_VERDE, HIGH ) ;
+      digitalWrite( LED_AZUL, HIGH ) ;
    }
 
    void test_celda(){
