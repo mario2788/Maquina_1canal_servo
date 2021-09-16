@@ -3,6 +3,7 @@ INSTALACIONES:
     pip3 install numpy
     pip3 install matplotlib
     sudo apt-get install python3-tk
+    sudo apt-get install python-scipy
 """
 import numpy as np
 import matplotlib.pyplot as plt

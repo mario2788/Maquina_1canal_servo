@@ -1,18 +1,18 @@
-/*                                ______________
-                        Reset   -|              |-   Analog_5
-      RX: PC/WIFI       Pin_0   -|      A       |-   Analog_4
-      TX: PC/WIFI       Pin_1   -|      T       |-   Analog_3
-      LED_AZUL          Pin_2   -|      M       |-   Analog_2
-      LED_VERDE         Pin_3   -|      E       |-   Analog_1
-      LED_ROJO          Pin_4   -|      G       |-   Analog_0
-                        VCC     -|      A       |-   GND
-                        GND     -|      3       |-   AREF
-                        CR_16MHz-|      2       |-   AVCC
-                        CR_16MHz-|      8       |-   Pin_13      SCK
-      SERVO_PEAJE       Pin_5   -|      A       |-   Pin_12      MISO
-      BTN-VERDE         Pin_6   -|              |-   Pin_11      MOSI
-      BTN_ROJO          Pin_7   -|              |-   Pin_10      SERVO_EXPULSION
-      BTN_AZUL          Pin_8   -|______________|-   Pin_9       SERVO_CLASIFICADOR
+/*                                 ______________
+                        Reset   -|1             28|-   Analog_5
+      RX: PC/WIFI       Pin_0   -|2      A      27|-   Analog_4
+      TX: PC/WIFI       Pin_1   -|3      T      26|-   Analog_3
+      LED_AZUL          Pin_2   -|4      M      25|-   Analog_2
+      LED_VERDE         Pin_3   -|5      E      24|-   Analog_1
+      LED_ROJO          Pin_4   -|6      G      23|-   Analog_0
+                        VCC     -|7      A      22|-   GND
+                        GND     -|8      3      21|-   AREF
+                        CR_16MHz-|9      2      20|-   AVCC
+                        CR_16MHz-|10     8      19|-   Pin_13      SCK
+      SERVO_PEAJE       Pin_5   -|11     A      18|-   Pin_12      MISO
+      BTN-VERDE         Pin_6   -|12            17|-   Pin_11      MOSI
+      BTN_ROJO          Pin_7   -|13            16|-   Pin_10      SERVO_EXPULSION
+      BTN_AZUL          Pin_8   -|14____________15|-   Pin_9       SERVO_CLASIFICADOR
 
    Motor mecanismo de admisión huevo a huevo ->    motor peaje
 	Motor mecanismo de rotación vertical      ->    motor clasificador
@@ -23,6 +23,7 @@
 // sudo chmod ugo+x+r+w /dev/ttyUSB0
 #include <Arduino.h>
 #include <TimerOne.h>
+#include <Servo.h>
 
 //Funciones externas
 #include "leds_btns.cpp"
@@ -86,8 +87,8 @@ void setup() {
    calibrarCelda() ;
 
    // interrupcion por timer1
-   Timer1.initialize( 500000 );         // Dispara cada 500 ms
-   Timer1.attachInterrupt( ISR_servo ); // Activa la interrupcion y la asocia a ISR_Blink
+   // Timer1.initialize( 500000 );         // Dispara cada 500 ms
+   // Timer1.attachInterrupt( ISR_servo ); // Activa la interrupcion y la asocia a ISR_Blink
 
 }
 
@@ -96,16 +97,21 @@ void loop() {
 
    // test_leds_btns() ;
    // test_servo();
-   // test_celda()
+   // test_celda();
+
    unsigned int value = 0 ;
-   unsigned char len = sizeof(CICLO_PEAJE_2)-1 ;
+   unsigned char len = sizeof(CICLO_PEAJE_2)/2-1 ;
    
    for ( unsigned int i = 0; i <= len ; i++ ){
       value = CICLO_PEAJE_2[ i ] ;
       SERVO_PEAJE.writeMicroseconds( value ) ;
-      Serial.println( CICLO_PEAJE_2[ i ]  );
-      Serial.println( i  );
-      delay(500);
+      Serial.print("value:") ;
+      Serial.println( CICLO_PEAJE_2[ i ]  ) ;
+      Serial.print("iteracion:") ;
+      Serial.print( i ) ;
+      Serial.print(" de ") ;
+      Serial.println( len ) ;
+      
    }
    
 
