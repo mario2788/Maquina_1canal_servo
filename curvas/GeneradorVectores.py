@@ -10,18 +10,22 @@ import matplotlib.pyplot as plt
 import scipy.optimize as op
 
 # *******************************************************************
-#***********    Configuracion de parametros    **********************
+# ***********    Configuracion de parametros    *********************
 # *******************************************************************
 # Angulos del movimiento:
-ang_inicial = 10
+ang_inicial = 30
 ang_final   = 90
+vel = 1/(2.4)*1000 # grados/s
 # Delta de tiempo para una interrupcion ms:
-time_intr = 50
+time_intr = 16 # constante
 # Tiempo del ciclo en ms:
-time_ciclo = 2000 
+time_ciclo = 1000
+if time_ciclo <= abs(ang_final - ang_inicial)/vel :  # v=x/t => t =x/v
+    time_ciclo = abs(ang_final - ang_inicial)/vel
 # limites de posicion del servo en microsegundos y grados:   
-mic_izq = 1000
-mic_der = 2000
+mic_izq = 500
+mic_der = 2185 #2500 servos grandes # 2185
+
 ang_izq = 0
 ang_der = 180
 # *******************************************************************
@@ -39,7 +43,7 @@ r = 1/2
 xc = r*( tc - np.sin(tc) )
 yc = 1
 
-puntos =  int (time_ciclo / time_intr )
+puntos =  int (time_ciclo / time_intr/2)
 t = np.linspace( np.pi, tc, puntos )
 x1 = r*( t - np.sin(t) )
 y1 = r*( 1 - np.cos(t) )

@@ -54,6 +54,7 @@
       //       break ;
       //    }
       // }
+      
       Serial.println( "Configuracion terminada." );
       digitalWrite( LED_ROJO, HIGH ) ;
       digitalWrite( LED_VERDE, HIGH ) ;

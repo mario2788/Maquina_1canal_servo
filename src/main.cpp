@@ -22,8 +22,7 @@
 // dar privilegios al conversor Serial
 // sudo chmod ugo+x+r+w /dev/ttyUSB0
 #include <Arduino.h>
-#include <TimerOne.h>
-#include <Servo.h>
+// #include <Servo.h>
 
 //Funciones externas
 #include "leds_btns.cpp"
@@ -38,8 +37,13 @@ const unsigned char bb = 50 ;
 // tolerancia: +-
 const unsigned char tol = 5;
 
-void ISR_servo() ;
+boolean servo_run() ;
 unsigned char categoria(float value);
+void timerTwoSetup();
+boolean value = false;
+unsigned int countTimerTwo = 0;
+unsigned long t = 0;
+
 
 void setup() {
 
@@ -61,12 +65,12 @@ void setup() {
    Serial.println("FirmWare With Servo motor");
 
    // Servos:
-   SERVO_PEAJE.attach   ( 5, 500, 2500 ) ; // ( pin, min_ms, max_ms)
-   SERVO_CLASIFI.attach ( 9, 500, 2500 ) ;
-   SERVO_EXPUL.attach   ( 10, 500, 2500) ;
-   SERVO_PEAJE.writeMicroseconds( POS_PEAJE_ON ) ;
-   SERVO_CLASIFI.writeMicroseconds( POS_CLASIFI_ON ) ;
-   SERVO_EXPUL.writeMicroseconds ( POS_EXPUL_ON ) ;
+   SERVO_PEAJE.attach   ( 5, 300, 3000 ) ; // ( pin, min_ms, max_ms)
+   SERVO_CLASIFI.attach ( 9, 300, 3000 ) ;
+   SERVO_EXPUL.attach   ( 10, 300, 3000) ;
+   SERVO_PEAJE.write( POS_PEAJE_ON ) ;
+   SERVO_CLASIFI.write( POS_CLASIFI_ON ) ;
+   SERVO_EXPUL.write ( POS_EXPUL_ON ) ;
    
    // Celda de carga:
    pinMode( LOADCELL_SCK_PIN, OUTPUT );
@@ -77,47 +81,31 @@ void setup() {
 
    //variables:
    delay( 100 ) ;
-   digitalWrite( BTN_AZUL, HIGH ) ;
-   digitalWrite( BTN_VERDE, HIGH ) ;
-   digitalWrite( BTN_ROJO, HIGH ) ;
+   digitalWrite( LED_AZUL, HIGH ) ;
+   digitalWrite( LED_VERDE, HIGH ) ;
+   digitalWrite( LED_ROJO, HIGH ) ;
 
-   // calibracion de la celda
-   // motor clasificador a 90°:
-   SERVO_CLASIFI.write(90);
+
+   // Configuración de TIMER2
+   timerTwoSetup();
+
+   //calibracion de la celda
+   //motor clasificador a 90°:
+   SERVO_CLASIFI.write(90) ;
    calibrarCelda() ;
-
-   // interrupcion por timer1
-   // Timer1.initialize( 500000 );         // Dispara cada 500 ms
-   // Timer1.attachInterrupt( ISR_servo ); // Activa la interrupcion y la asocia a ISR_Blink
-
 }
 
 void loop() {
    // put your main code here, to run repeatedly:
 
    // test_leds_btns() ;
-   // test_servo();
    // test_celda();
-
-   unsigned int value = 0 ;
-   unsigned char len = sizeof(CICLO_PEAJE_2)/2-1 ;
-   
-   for ( unsigned int i = 0; i <= len ; i++ ){
-      value = CICLO_PEAJE_2[ i ] ;
-      SERVO_PEAJE.writeMicroseconds( value ) ;
-      Serial.print("value:") ;
-      Serial.println( CICLO_PEAJE_2[ i ]  ) ;
-      Serial.print("iteracion:") ;
-      Serial.print( i ) ;
-      Serial.print(" de ") ;
-      Serial.println( len ) ;
-      
-   }
+   // test_servo();
    
 
+   // Rutina principal
    float value_celda = 0 ;
-   unsigned char cat = 0 ;
-
+   
    // Espera hasta que se oprima el boton verde
    Serial.println("En espera del boton verde");
    while( readBtn( BTN_VERDE, LOW ) ){
@@ -125,36 +113,83 @@ void loop() {
    }
 
    //Inicio de la rutina de trabajo:
+   unsigned char cat = 0 ;
 
    // carga huevo a la celda:
    Serial.println("Carga del ciclo 1") ;
    CICLOS_PEAJE = 1 ; //Se da comienzo al movimiento.
-   while( CICLOS_PEAJE > 0 ){
-      Serial.print( "" );
-   } 
-   // espera a terminar el movimiento
-   Serial.println("ciclo 1");
-
-   delay(500); // Espera para estabilizacion del huevo.
-   Serial.println("Inicio medida");
-   value_celda = bascula.get_units(3); // Tres lecturas
-   cat = categoria( value_celda ); // definicion de categoria
-
-   // carga huevo al clasificador
-   Serial.println("Carga del ciclo 2");
-   CICLOS_PEAJE = 2 ; //Se da comienzo al movimiento.
-   while( CICLOS_PEAJE > 0 ){
-      Serial.print("");
-   } 
-   Serial.println("ciclo 2");
-
-   Serial.println("Carga del ciclo 3");
-   CICLOS_PEAJE = 3 ; //Se da comienzo al movimiento.
-   while( CICLOS_PEAJE > 0 ){
-      Serial.print("");
-   } 
-   Serial.println("ciclo 3");
+   CICLOS_EXPUL = 1 ;
+   CICLOS_CLASIFI = 1 ;
+   while( servo_run() ){
+      delay(8);
+   }
    
+   // carga huevo a la celda:
+   Serial.println("Carga del ciclo 2") ;
+   CICLOS_PEAJE = 2 ; //Se da comienzo al movimiento.
+   CICLOS_EXPUL = 2 ;
+   CICLOS_CLASIFI = 2 ;
+   while( servo_run() ){
+      delay(8);
+   } 
+
+   // carga huevo a la celda:
+   Serial.println("Carga del ciclo 3") ;
+   CICLOS_PEAJE = 3 ; //Se da comienzo al movimiento.
+   CICLOS_EXPUL = 3 ;
+   CICLOS_CLASIFI = 3 ;
+   int m = millis() ;
+   value_celda = bascula.get_units(3) ; // Tres lecturas
+   Serial.print( millis()-m );
+   while( servo_run() ){
+      delay(8);
+   } 
+   
+   // // espera a terminar el movimiento
+   // Serial.println("ciclo 1") ;
+
+   // delay(500); // Espera para estabilizacion del huevo.
+   // Serial.println("Inicio medida") ;
+   // value_celda = bascula.get_units(3) ; // Tres lecturas
+   // cat = categoria( value_celda ) ; // definicion de categoria
+
+   // // carga huevo al clasificador
+   // Serial.println("Carga del ciclo 3");
+   // CICLOS_PEAJE = 2 ; //Se da comienzo al movimiento.
+   // while( CICLOS_PEAJE > 0 ){
+   //    Serial.print("");
+   // } 
+   // Serial.println("ciclo 2");
+
+   // Serial.println("Carga del ciclo 3");
+   // CICLOS_PEAJE = 3 ; //Se da comienzo al movimiento.
+   // while( CICLOS_PEAJE > 0 ){
+   //    Serial.print("");
+   // } 
+   // Serial.println("ciclo 3");
+   
+}
+
+ISR(TIMER2_COMPA_vect){
+   // countTimerTwo = countTimerTwo + 1 ;
+   // if( countTimerTwo == 30 ){
+      //digitalWrite(ledPin, digitalRead(ledPin) ^ 1);   //invierte estado del LED con XOR
+      // countTimerTwo = 0 ;
+      Serial.println(millis()-t);
+      t = millis();
+      value = !value;
+      digitalWrite( LED_VERDE, value ) ;
+   // }
+}
+
+void timerTwoSetup(){
+  // Configuración de TIMER2
+  TCCR2A = 0;                // El registro de control A queda todo en 0
+  TCCR2B = 0;                //limpia registrador
+  TCNT2  = 0;                //Inicializa el temporizador
+  OCR2A = 0xF9;            // carga el registrador de comparación: 16MHz/1024/62.5Hz -1 = 249 = 0xF9
+  TCCR2B |= (1 << WGM12)|(1<<CS22)|(1 << CS21)|(1 << CS20);   // modo CTC: WGM12, prescaler de 1024: CS22 = 1, CS21 = 1 y CS20 = 1 
+  TIMSK2 |= (1 << OCIE2A);  // habilita interrupción por igualdad de comparación
 }
 
 unsigned char categoria(float value){
@@ -180,15 +215,18 @@ unsigned char categoria(float value){
    return 0 ;
 }
 
-void ISR_servo(){   
+boolean servo_run(){ 
    // administracion de ciclos del motor clasificador
-   if( CICLOS_CLASIFI !=0 ){
-      Serial.write("Llamado ciclo clasifi  \n");
+   boolean flag_mov = false ;
+   Serial.println(" ") ;
+
+   if( CICLOS_CLASIFI != 0 ){
+      flag_mov = true ;
+      Serial.print("clasificador ");
       switch ( CICLOS_CLASIFI ){
          case 1:
-            if( INDEX_CLASIFI <  sizeof(CICLO_CLASIFI_1)-1 ){
+            if( INDEX_CLASIFI <  SIZE_CICLO_CLASIFI_1-1 ){
                SERVO_CLASIFI.writeMicroseconds( CICLO_CLASIFI_1[INDEX_CLASIFI] ) ;
-               Serial.println( CICLO_CLASIFI_1[INDEX_CLASIFI] );
                INDEX_CLASIFI = INDEX_CLASIFI + 1 ;
             }else{
                CICLOS_CLASIFI = 0 ;
@@ -196,9 +234,8 @@ void ISR_servo(){
             }
             break;
          case 2:
-            if( INDEX_CLASIFI <  sizeof(CICLO_CLASIFI_2)-1 ){
+            if( INDEX_CLASIFI <  SIZE_CICLO_CLASIFI_2 - 1 ){
                SERVO_CLASIFI.writeMicroseconds( CICLO_CLASIFI_2[INDEX_CLASIFI] ) ;
-               Serial.println( CICLO_CLASIFI_2[INDEX_CLASIFI] );
                INDEX_CLASIFI = INDEX_CLASIFI + 1 ;
             }else{
                CICLOS_CLASIFI = 0 ;
@@ -206,9 +243,8 @@ void ISR_servo(){
             }
             break; 
          case 3:
-            if( INDEX_CLASIFI <  sizeof(CICLO_CLASIFI_3)-1 ){
+            if( INDEX_CLASIFI <  SIZE_CICLO_CLASIFI_3 - 1 ){
                SERVO_CLASIFI.writeMicroseconds( CICLO_CLASIFI_3[INDEX_CLASIFI] ) ;
-               Serial.println( CICLO_CLASIFI_3[INDEX_CLASIFI] );
                INDEX_CLASIFI = INDEX_CLASIFI + 1 ;
             }else{
                CICLOS_CLASIFI = 0 ;
@@ -222,30 +258,29 @@ void ISR_servo(){
 
    // administracion de ciclos del motor de expulsion
    if( CICLOS_EXPUL !=0 ){
-      Serial.write("Llamado ciclo expul  \n");
+      flag_mov = true ;
+      Serial.print("expulsor ");
       switch ( CICLOS_EXPUL ){
          case 1:
-            if( INDEX_EXPUL <  sizeof(CICLO_EXPUL_1)-1 ){
+            if( INDEX_EXPUL <  SIZE_CICLO_EXPUL_1 - 1 ){
                INDEX_EXPUL = INDEX_EXPUL + 1 ;
                SERVO_EXPUL.writeMicroseconds( CICLO_EXPUL_1[INDEX_EXPUL] ) ;
-               Serial.println( CICLO_EXPUL_1[INDEX_EXPUL] );
             }else{
                CICLOS_EXPUL = 0 ;
                INDEX_EXPUL = 0;
             }
             break;
          case 2:
-            if( INDEX_EXPUL <  sizeof(CICLO_EXPUL_2)-1 ){
+            if( INDEX_EXPUL <  SIZE_CICLO_EXPUL_2 - 1 ){
                INDEX_EXPUL = INDEX_EXPUL + 1 ;
                SERVO_EXPUL.writeMicroseconds( CICLO_EXPUL_2[INDEX_EXPUL] ) ;
-               Serial.println( CICLO_EXPUL_2[INDEX_EXPUL] );
             }else{
                CICLOS_EXPUL = 0 ;
                INDEX_EXPUL = 0;
             }
             break; 
          case 3:
-            if( INDEX_EXPUL <  sizeof(CICLO_EXPUL_3)-1 ){
+            if( INDEX_EXPUL <  SIZE_CICLO_EXPUL_3 - 1 ){
                INDEX_EXPUL = INDEX_EXPUL + 1 ;
                SERVO_EXPUL.writeMicroseconds( CICLO_EXPUL_3[INDEX_EXPUL] ) ;
             }else{
@@ -258,14 +293,14 @@ void ISR_servo(){
          }
    }
 
-  // administracion de ciclos del motor peaje
+  // administracion de ciclos del motor de peaje
    if( CICLOS_PEAJE !=0 ){
-      Serial.println("Llamado ciclo peaje");
+      flag_mov = true ;
+      Serial.print("peaje ");
       switch ( CICLOS_PEAJE ){
          case 1:
-            if( INDEX_PEAJE < sizeof(CICLO_PEAJE_1)-1 ){               
+            if( INDEX_PEAJE < SIZE_CICLO_PEAJE_1 - 1 ){               
                SERVO_PEAJE.writeMicroseconds( CICLO_PEAJE_1[INDEX_PEAJE] ) ;
-               Serial.println( CICLO_PEAJE_1[INDEX_PEAJE] );
                INDEX_PEAJE = INDEX_PEAJE + 1 ;
             }else{
                CICLOS_PEAJE = 0 ;
@@ -273,9 +308,8 @@ void ISR_servo(){
             }
             break;
          case 2:
-            if( INDEX_PEAJE <  sizeof(CICLO_PEAJE_2)-1 ){
+            if( INDEX_PEAJE <  SIZE_CICLO_PEAJE_2 - 1 ){
                SERVO_PEAJE.writeMicroseconds( CICLO_PEAJE_2[INDEX_PEAJE] ) ;
-               Serial.println( CICLO_PEAJE_2[INDEX_PEAJE] );
                INDEX_PEAJE = INDEX_PEAJE + 1 ;
             }else{
                CICLOS_PEAJE = 0 ;
@@ -283,9 +317,8 @@ void ISR_servo(){
             }
             break; 
          case 3:
-            if( INDEX_PEAJE <  sizeof(CICLO_PEAJE_3)-1 ){
-               SERVO_PEAJE.writeMicroseconds( CICLO_PEAJE_3[INDEX_PEAJE] ) ;
-               Serial.println( CICLO_PEAJE_3[INDEX_PEAJE] );
+            if( INDEX_PEAJE <  SIZE_CICLO_PEAJE_3 - 1 ){
+               SERVO_PEAJE.writeMicroseconds( CICLO_PEAJE_3[INDEX_PEAJE] ) ;               
                INDEX_PEAJE = INDEX_PEAJE + 1 ;
             }else{
                CICLOS_PEAJE = 0 ;
@@ -295,5 +328,7 @@ void ISR_servo(){
          default:
             break;
       }
-   }   
+   }  
+
+   return flag_mov ; 
 }
