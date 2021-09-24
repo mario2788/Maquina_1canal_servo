@@ -18,10 +18,11 @@
       //    get about the parameter you need to pass to `set_scale()`.
       // 5. Adjust the parameter in step 4 until you get an accurate reading.
 
+      
+      Serial.println( "Calibracion: set_scale()..." ) ;
       bascula.set_scale();
-      Serial.println( "Calibracion: set_scale()" ) ;
+      Serial.println( "Calibracion: tare()..." );
       bascula.tare();
-      Serial.println( "Calibracion: tare()" );
 
       unsigned int delay_200m = millis() ;
       boolean stateLed = HIGH ;

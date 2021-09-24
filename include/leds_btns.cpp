@@ -25,17 +25,20 @@
             case BTN_AZUL:
                digitalWrite( LED_AZUL, HIGH );
                valueReturn = true ;
-               Serial.write("Boton azul oprimido");
+               Serial.println("Boton azul oprimido");
+               Serial.println(" ");
                break ;
             case BTN_VERDE:
                digitalWrite( LED_VERDE, HIGH );
                valueReturn = true ;
-               Serial.write("Boton verde oprimido");
+               Serial.println("Boton verde oprimido");
+               Serial.println(" ");
                break ;
             case BTN_ROJO:
                digitalWrite( LED_ROJO, HIGH );
                valueReturn = true ;
-               Serial.write("Boton rojo oprimido");
+               Serial.println("Boton rojo oprimido");
+               Serial.println(" ");
                break ;
             default:
                valueReturn = 0 ;
